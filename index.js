@@ -6,6 +6,8 @@ const logger = require('./database');
 
 var app = express();
 app.use(function(req, res, next) {
+	var ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
+	db.setIp(ip);
     res.header("Access-Control-Allow-Origin", "*");
     res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
     next();
@@ -13,9 +15,6 @@ app.use(function(req, res, next) {
 
 
 app.get('/lugares/peligrosos/:tipo', (req, res, next) => {
-	var ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
-	db.setIp(ip);
-
 	var tipo = req.params.tipo;
 	var str = "";
 	
@@ -23,6 +22,8 @@ app.get('/lugares/peligrosos/:tipo', (req, res, next) => {
 		str = "SELECT * FROM peligro_lugares ";
 	}else if(tipo>0){
 		str = "SELECT * FROM peligro_lugares where tipo_peligro = "+tipo; 
+	}else{
+		res.status(403).send({error:"el tipo no corresponde"});
 	}
 	
   	db.query(str,
@@ -35,10 +36,37 @@ app.get('/lugares/peligrosos/:tipo', (req, res, next) => {
 })
 
 app.get('/', function(req, res) {
-    var ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
-    logger.log('API creado por Acner Pinazo acner@elyon.com.py', ip);
+   
+    logger.log('API creado por Acner Pinazo acner@elyon.com.py');
     res.send('API creado por Acner Pinazo acner@elyon.com.py');
 });
+
+
+app.get('/lugares/peligrosos/:tipo/:latitud/:longitud',(req, res, next) => {	
+	var latitud = req.params.latitud;
+	var longitud = req.params.longitud;
+	var tipo = req.params.tipo;
+	var str = "";
+	
+	if(tipo=='all'){
+		str = "SELECT * FROM peligro_lugares\
+			WHERE ST_Distance_Sphere(coordenada, ST_MakePoint("+longitud+","+latitud+")) <= 1 * 1609.34";
+	}else if(tipo>0){
+		str = "SELECT * FROM peligro_lugares \
+			WHERE tipo_peligro = "+tipo+" and ST_Distance_Sphere(coordenada, ST_MakePoint("+longitud+","+latitud+")) <= 1 * 1609.34"; 
+	}else{
+		res.status(403).send({error:"el tipo no corresponde"});
+	}
+	
+  	db.query(str,
+  		(data) => {
+	    	res.send({num_rows: data.rowCount,result:data.rows});
+  		},
+  		(err)=>{
+  			res.status(500).send({error:err});
+  		})
+
+})
 
 app.listen(8080, function() {
     logger.log('Inicio el servidor node en el puerto 8080', '127.0.0.1:8080');

@@ -16,11 +16,7 @@ function log(log,ip,tiempo){
 	            console.log(ip + ' - ' + date.toLocaleDateString() + " " + date.toLocaleTimeString() + " => " + log);
 	        }
 	    }
-
 }
-
-
-
 
 module.exports = {
 	ip:'',
@@ -49,15 +45,11 @@ module.exports = {
 	      	log(error,self.ip)
 	      	return  error(error);
 		})
-  		
-  		
-    	
   	},
   	setIp : (ip)=>{
   		this.ip = ip;
   	},
   	log:(text, ip,tiempo)=>{
-
   		log(text,ip,tiempo);
 	   
 	}
